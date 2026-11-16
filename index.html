@@ -327,7 +327,7 @@
         </div>
       </div>
       <div class="field last">
-        <label>아이템 <span class="hint" style="margin:0;font-weight:500">마우스를 올리면 설명</span></label>
+        <label>아이템 <span class="hint" style="margin:0;font-weight:500">상자는 먹혀도 3초 뒤 다시 생겨요 · 마우스를 올리면 설명</span></label>
         <div class="chips">
           <span class="chip" tabindex="0" data-tip="2.5초간 속도 ×1.5"><img class="pxi" data-px="boost" alt=""> 부스트</span>
           <span class="chip" tabindex="0" data-tip="3초간 속도 ×1.6 · 부딪힌 사람을 넘어뜨림"><img class="pxi" data-px="rage" alt=""> 폭주</span>
@@ -716,6 +716,8 @@ const THROW = {
 };
 // 혼자 넘어짐: 목표 속도를 다시 뽑을 때(0.5~1.4초마다) 이 확률로 발이 꼬여 넘어짐 → 경기당 평균 1번 안팎
 const TRIP_CHANCE = 0.02, STUN_TRIP = 1.0;
+// 아이템 상자는 먹힌 뒤 이 시간(초)이 지나면 같은 자리에 다시 생김 (종류는 다시 뽑음) → 뒤쪽 주자도 아이템 기회
+const ITEM_RESPAWN = 3;
 const ITEM_KEYS = Object.keys(ITEM_TYPES);
 
 let cfg = loadCfg();
@@ -1899,7 +1901,7 @@ function updateRunner(r, dt) {
   // 아이템 획득
   for (const it of items) {
     if (it.taken || Math.abs(it.d - r.d) > 0.9 || Math.abs(it.lat - r.lat) > 1.0) continue;
-    it.taken = true; it.mesh.visible = false;
+    it.taken = true; it.mesh.visible = false; it.respawn = ITEM_RESPAWN;
     applyItem(r, it.type);
   }
 
@@ -2045,9 +2047,21 @@ function commitFinishers() {
   frameFin = [];
 }
 
+// 먹힌 상자 다시 생성 (경기 시간 기준 · 종류는 시드 난수로 다시 뽑아 재현 가능)
+function respawnItems(dt) {
+  for (const it of items) {
+    if (!it.taken) continue;
+    it.respawn -= dt;
+    if (it.respawn > 0) continue;
+    const type = ITEM_KEYS[randInt(0, ITEM_KEYS.length - 1)];
+    if (type !== it.type) { it.type = type; it.mesh.material.map = emojiTex(type); it.mesh.material.needsUpdate = true; }
+    it.taken = false; it.mesh.visible = true; it.appear = 0;          // appear: 화면 전용 등장 애니메이션
+  }
+}
 function step(dt) {
   for (const r of runners) updateRunner(r, dt);
   updateProjectiles(dt);
+  respawnItems(dt);
   separate();
   commitFinishers();
   if (state === 'ended') endT += dt;
@@ -2100,7 +2114,14 @@ function syncVisuals(rdt) {
     const em = r.fxRage > 0 ? 0x880000 : r.fxBoost > 0 ? 0x775500 : 0x000000;
     for (const m of r.mats) m.emissive.setHex(em);
   }
-  for (const it of items) if (!it.taken) { it.ph += rdt * 2; it.mesh.rotation.y = it.ph; }
+  for (const it of items) if (!it.taken) {
+    it.ph += rdt * 2; it.mesh.rotation.y = it.ph;
+    if (it.appear !== undefined && it.appear < 1) {                    // 다시 생길 때 톡 튀어나옴
+      it.appear = Math.min(1, it.appear + rdt * 3.5);
+      const k = it.appear, s = 1 + Math.sin(k * Math.PI) * 0.35;
+      it.mesh.scale.setScalar(Math.max(0.01, k * s));
+    }
+  }
   for (const p of projectiles) { // 포물선 비행
     const s = Math.min(1, p.t / p.T), lat = p.lat0 + (p.lat1 - p.lat0) * s;
     frameAt(p.d0 + (p.d1 - p.d0) * s, TF);
