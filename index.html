@@ -177,6 +177,11 @@
   .lk-ctrl input[type=checkbox] { width:1.1em; height:1.1em; accent-color:var(--accent); }
   .lk-chip { margin-left:auto; padding:.35em .9em; border-radius:2em; background:#f6f7fb; border:1px solid var(--line); font-size:.85em; font-weight:700; color:var(--muted); }
   #lkGo:disabled { opacity:.5; cursor:default; box-shadow:none; }
+  .lk-btns { display:grid; grid-template-columns:1.25fr 1fr; gap:.8em; }
+  #lkRace { border:2px solid var(--accent); border-radius:.8em; background:#fff; color:var(--accent); font-size:1.05em; font-weight:800; padding:.6em .8em; line-height:1.25; }
+  #lkRace:hover:not(:disabled) { background:#fff4ef; }
+  #lkRace:disabled { opacity:.45; cursor:default; }
+  #lkRace small { display:block; font-size:.72em; font-weight:700; opacity:.85; }
   .lk-names { flex:1; min-height:0; display:flex; flex-direction:column; }
   #lkNames { flex:1; min-height:0; resize:none; line-height:1.5; }
   .lk-wins { max-height:11em; display:flex; flex-direction:column; min-height:0; }
@@ -234,7 +239,10 @@
       <label><input id="lkExclude" type="checkbox" checked> 당첨자는 다음 추첨에서 제외</label>
       <span class="lk-chip" id="lkRemain">남은 인원 0명</span>
     </div>
-    <button id="lkGo">추첨하기</button>
+    <div class="lk-btns">
+      <button id="lkGo">추첨하기</button>
+      <button id="lkRace" type="button" title="럭키드로우 당첨자를 뺀 나머지가 오리날다 주자가 돼요">당첨자 빼고 오리달리기</button>
+    </div>
   </div>
   <div class="col">
     <div class="card lk-names">
@@ -1425,6 +1433,7 @@ function startFromSetup() {
   saveCfg();
   const st = $('seed').value.trim();
   const sd = st === '' ? (Math.random() * 0xFFFFFFFF) >>> 0 : (/^\d+$/.test(st) ? (Number(st) >>> 0) : hashSeed(st));
+  raceOrigin = 'setup';
   beginRace({ names, winN: podiumN, mode: cfg.mode, items: cfg.items, map: cfg.map, len: cfg.len }, sd);
 }
 
@@ -1436,7 +1445,7 @@ function beginRace(r, sd) {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     $('stage').appendChild(renderer.domElement);
   }
-  $('setup').hidden = true; $('result').hidden = true; $('race').hidden = false;
+  $('setup').hidden = true; $('menu').hidden = true; $('lucky').hidden = true; $('result').hidden = true; $('race').hidden = false;
   onResize();
 
   const n = race.names.length;
@@ -1948,10 +1957,12 @@ function showResult() {
   $('moreWinners').textContent = extra.length ? '그 외 당첨: ' + extra.join(', ') : '';
   $('result').hidden = false;
 }
+let raceOrigin = 'setup';
 function backToSetup() {
   cancelAnimationFrame(animId);
   disposeScene();
-  $('race').hidden = true; $('result').hidden = true; $('setup').hidden = false;
+  $('race').hidden = true; $('result').hidden = true;
+  showScreen(raceOrigin);                 // 오리날다 설정 또는 럭키드로우(당첨자 빼고 오리달리기)로 복귀
 }
 
 /* =========================================================
@@ -2086,6 +2097,10 @@ const LK = (() => {
     $('lkGo').disabled = spinning || remain === 0;
     $('lkGo').textContent = spinning ? '추첨 중…' : winners.length ? '다시 추첨' : '추첨하기';
     $('lkCount').disabled = spinning; $('lkExclude').disabled = spinning;
+    const runnersLeft = all.filter(n => !winners.includes(n)).length;      // 당첨자는 항상 주자에서 제외
+    $('lkRace').disabled = spinning || winners.length === 0 || runnersLeft < 2;
+    $('lkRace').innerHTML = '당첨자 빼고 오리달리기<small>' +
+      (winners.length === 0 ? '먼저 추첨을 해 주세요' : runnersLeft < 2 ? '남은 인원이 2명 이상이어야 해요' : '남은 ' + runnersLeft + '명이 주자로 출전') + '</small>';
     $('lkWinCount').textContent = winners.length;
     const ul = $('lkWinners'); ul.innerHTML = '';
     if (!winners.length) { const li = document.createElement('li'); li.className = 'none'; li.style.cssText = 'background:none;border:0;padding:0'; li.textContent = '아직 당첨자가 없어요'; ul.append(li); }
@@ -2093,6 +2108,15 @@ const LK = (() => {
     if (!spinning && !$('lkStage').querySelector('.reel')) stageEmpty();
   }
   $('lkGo').onclick = draw;
+  // 당첨자를 뺀 나머지로 바로 오리날다 경기 (설정은 오리날다 화면의 맵·거리·순위 방식·아이템 그대로, 저장된 명단은 그대로 둠)
+  $('lkRace').onclick = () => {
+    if (spinning) return;
+    const runnersNames = names().filter(n => !winners.includes(n));
+    if (runnersNames.length < 2 || winners.length === 0) return;
+    raceOrigin = 'lucky';
+    beginRace({ names: runnersNames.slice(0, MAX_N), winN: Math.min(3, runnersNames.length - 1), mode: cfg.mode, items: cfg.items,
+                map: cfg.map, len: cfg.len }, (Math.random() * 0xFFFFFFFF) >>> 0);
+  };
   $('lkReset').onclick = () => { if (spinning) return; winners = []; anims.forEach(cancelAnimationFrame); anims = []; stageEmpty(); render(); };
   $('lkNames').addEventListener('input', () => { cfg.names = $('lkNames').value; saveCfg(); render(); });
   $('lkExclude').addEventListener('change', render);
