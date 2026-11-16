@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>오리날다</title>
+<title>오리달리기</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   /* 16:9 고정 스테이지. --sw(스테이지 너비)에 맞춰 font-size가 바뀌고,
@@ -212,7 +212,7 @@
     </button>
     <button class="menu-card" type="button" id="goRace">
       <div class="ico"><img src="assets/lakeduck.png" alt=""></div>
-      <b>오리날다</b>
+      <b>오리달리기</b>
       <span>오리 달리기 레이스로 순위를 정해요</span>
       <div class="go">시작하기</div>
     </button>
@@ -241,14 +241,14 @@
     </div>
     <div class="lk-btns">
       <button id="lkGo">추첨하기</button>
-      <button id="lkRace" type="button" title="럭키드로우 당첨자를 뺀 나머지가 오리날다 주자가 돼요">당첨자 빼고 오리달리기</button>
+      <button id="lkRace" type="button" title="럭키드로우 당첨자를 뺀 나머지가 오리달리기 주자가 돼요">당첨자 빼고 오리달리기</button>
     </div>
   </div>
   <div class="col">
     <div class="card lk-names">
       <label for="lkNames">참가자 <span class="cnt" id="lkCountLabel">0명</span></label>
       <textarea id="lkNames" placeholder="철수&#10;영희&#10;민수"></textarea>
-      <p class="hint">ENTER로 참가자를 구분해요. 오리날다와 같은 명단이에요.</p>
+      <p class="hint">ENTER로 참가자를 구분해요. 오리달리기와 같은 명단이에요.</p>
     </div>
     <div class="card lk-wins">
       <div class="head"><b>당첨 기록 <span id="lkWinCount">0</span></b><button type="button" id="lkReset">초기화</button></div>
@@ -261,7 +261,7 @@
   <div class="brand">
     <img class="logo" src="assets/lakeduck.png" alt="LAKE DUCK">
     <div>
-      <h1>오리날다</h1>
+      <h1>오리달리기</h1>
       <p class="sub">레이크덕 럭키드로우</p>
     </div>
     <div class="tools">
@@ -1962,7 +1962,7 @@ function backToSetup() {
   cancelAnimationFrame(animId);
   disposeScene();
   $('race').hidden = true; $('result').hidden = true;
-  showScreen(raceOrigin);                 // 오리날다 설정 또는 럭키드로우(당첨자 빼고 오리달리기)로 복귀
+  showScreen(raceOrigin);                 // 오리달리기 설정 또는 럭키드로우(당첨자 빼고 오리달리기)로 복귀
 }
 
 /* =========================================================
@@ -2000,7 +2000,7 @@ $('btnReplay').onclick = () => beginRace(race, seed);
 $('btnAgain').onclick = () => beginRace(race, (Math.random() * 0xFFFFFFFF) >>> 0);
 
 /* =========================================================
- *  화면 전환: 메뉴(최초 진입) · 럭키드로우 · 오리날다 설정
+ *  화면 전환: 메뉴(최초 진입) · 럭키드로우 · 오리달리기 설정
  * ========================================================= */
 function showScreen(id) {
   for (const s of ['menu', 'lucky', 'setup']) $(s).hidden = s !== id;
@@ -2010,7 +2010,7 @@ function showScreen(id) {
 $('goLucky').onclick = () => showScreen('lucky');
 $('goRace').onclick = () => showScreen('setup');
 document.querySelectorAll('[data-menu]').forEach(b => { b.onclick = () => { if (!LK.spinning) showScreen('menu'); }; });
-// 오리날다 명단도 입력 즉시 저장 → 럭키드로우와 같은 명단을 씀
+// 오리달리기 명단도 입력 즉시 저장 → 럭키드로우와 같은 명단을 씀
 $('names').addEventListener('input', () => { cfg.names = $('names').value; saveCfg(); });
 
 /* =========================================================
@@ -2108,7 +2108,7 @@ const LK = (() => {
     if (!spinning && !$('lkStage').querySelector('.reel')) stageEmpty();
   }
   $('lkGo').onclick = draw;
-  // 당첨자를 뺀 나머지로 바로 오리날다 경기 (설정은 오리날다 화면의 맵·거리·순위 방식·아이템 그대로, 저장된 명단은 그대로 둠)
+  // 당첨자를 뺀 나머지로 바로 오리달리기 경기 (설정은 오리달리기 화면의 맵·거리·순위 방식·아이템 그대로, 저장된 명단은 그대로 둠)
   $('lkRace').onclick = () => {
     if (spinning) return;
     const runnersNames = names().filter(n => !winners.includes(n));
