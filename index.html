@@ -144,6 +144,7 @@
                box-shadow:0 .8em 2em rgba(255,90,54,.18); outline:none; }
   .menu-card .ico { font-size:4.2em; line-height:1; height:1.1em; display:flex; align-items:center; }
   .menu-card .ico img { height:1.15em; }
+  .menu-card .ico img.duck3d { height:1.7em; margin:-.35em 0 -.25em; filter:drop-shadow(0 .06em .08em rgba(20,30,60,.18)); }
   .menu-card b { font-size:1.7em; font-weight:800; letter-spacing:-.02em; }
   .menu-card span { color:var(--muted); font-size:.95em; }
   .menu-card .go { margin-top:.5em; padding:.45em 1.4em; border-radius:2em; background:var(--accent); color:#fff; font-weight:800; font-size:.95em; }
@@ -2123,6 +2124,28 @@ const LK = (() => {
   return { render, get spinning() { return spinning; }, get winners() { return winners; } };
 })();
 showScreen('menu');
+
+// 메뉴의 오리런 카드 그림: 경기에 나오는 복셀 오리를 그대로 3/4 각도로 그려서 이미지로 씀
+(function renderDuckIcon() {
+  try {
+    const W = 360, H = 360;
+    const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    r.setPixelRatio(1); r.setSize(W, H, false);
+    const sc = new THREE.Scene();
+    sc.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.0));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.55); sun.position.set(3, 5, 4); sc.add(sun);
+    const duck = buildDuck({ base: '#8b5a2f', trim: '#a7703c', collar: '#8b5a2f', zip: '#5c3a1c', zipType: 'half' }); // 원본 갈색 재킷
+    sc.add(duck);
+    // 깃대까지 넣으면 오리가 작아지므로 몸통·머리 기준으로 프레이밍 (오리 정면 = +z)
+    const c = new THREE.Vector3(0, 1.0, 0.15), dir = new THREE.Vector3(0.42, 0.24, 1).normalize();
+    const cam = new THREE.PerspectiveCamera(28, W / H, 0.1, 50);
+    cam.position.copy(c).addScaledVector(dir, 4.3); cam.lookAt(c);
+    r.render(sc, cam);
+    const img = document.querySelector('#goRace .ico img');
+    img.src = r.domElement.toDataURL('image/png'); img.classList.add('duck3d');
+    r.dispose(); r.forceContextLoss();
+  } catch (e) { /* WebGL이 안 되면 기존 로고 그대로 */ }
+})();
 // 나무·바위 복셀 모델은 처음 만들 때 1초 가까이 걸리므로, 페이지가 뜬 뒤 미리 만들어 둔다
 setTimeout(() => { try { sceneryTemplates(); } catch (e) {} }, 300);
 </script>
