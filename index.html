@@ -70,9 +70,9 @@
   .chip:nth-child(3n):hover::after, .chip:nth-child(3n):focus::after { transform:translate(0, 0); }
   .field.last { margin-bottom:0; }
   #msg { color:#d6336c; font-weight:700; margin-left:.5em; }
-  #go { padding:.85em; border:0; border-radius:.8em; background:var(--accent); color:#fff; font-size:1.3em; font-weight:800;
+  #go, #lkGo { padding:.85em; border:0; border-radius:.8em; background:var(--accent); color:#fff; font-size:1.3em; font-weight:800;
         box-shadow:0 .4em 1.2em rgba(255,90,54,.35); }
-  #go:hover { filter:brightness(1.05); }
+  #go:hover, #lkGo:hover:not(:disabled) { filter:brightness(1.05); }
   .fs { border:1px solid var(--line); background:#fff; border-radius:.6em; padding:.4em .7em; font-size:.8em; color:var(--muted); white-space:nowrap; }
 
   /* ── 경기 화면 ── */
@@ -129,19 +129,137 @@
   .btns { display:grid; grid-template-columns:1fr 1fr 1fr; gap:.5em; }
   .btns button { padding:.65em; border-radius:.6em; border:1px solid var(--line); background:#fff; font-size:.9em; }
   .btns button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  /* ── 최초 진입 메뉴 ── */
+  #menu { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.6em; padding:2em 3em;
+          background:linear-gradient(135deg,#fff3ec 0%,#eef3ff 100%); }
+  #menu .menu-head { display:flex; flex-direction:column; align-items:center; gap:.5em; }
+  #menu .menu-head img { height:9em; filter:drop-shadow(0 .25em .5em rgba(20,30,60,.12)); }
+  #menu .menu-head p { margin:0; color:var(--muted); font-size:1.05em; font-weight:600; }
+  .menu-cards { display:grid; grid-template-columns:1fr 1fr; gap:1.4em; width:100%; max-width:46em; }
+  .menu-card { display:flex; flex-direction:column; align-items:center; gap:.5em; padding:1.8em 1.4em 1.5em;
+               background:var(--card); border:2px solid var(--line); border-radius:1.2em; cursor:pointer; font:inherit; color:var(--ink);
+               box-shadow:0 .4em 1.6em rgba(20,30,60,.07); transition:transform .12s, border-color .12s, box-shadow .12s; }
+  .menu-card:hover, .menu-card:focus-visible { transform:translateY(-.25em); border-color:var(--accent);
+               box-shadow:0 .8em 2em rgba(255,90,54,.18); outline:none; }
+  .menu-card .ico { font-size:4.2em; line-height:1; height:1.1em; display:flex; align-items:center; }
+  .menu-card .ico img { height:1.15em; }
+  .menu-card b { font-size:1.7em; font-weight:800; letter-spacing:-.02em; }
+  .menu-card span { color:var(--muted); font-size:.95em; }
+  .menu-card .go { margin-top:.5em; padding:.45em 1.4em; border-radius:2em; background:var(--accent); color:#fff; font-weight:800; font-size:.95em; }
+  #menu .sponsor { margin-top:0; }
+  .back { border:1px solid var(--line); background:#fff; border-radius:.6em; padding:.4em .8em; font-size:.8em; color:var(--ink); font-weight:700; white-space:nowrap; }
+  .brand .tools { margin-left:auto; align-self:flex-start; display:flex; gap:.5em; }
+  .brand .tools .fs { margin:0; }
+
+  /* ── 럭키드로우 ── */
+  #lucky { display:grid; grid-template-columns:1.55fr 1fr; grid-template-rows:auto minmax(0,1fr); gap:1.3em 1.6em; padding:1.8em 3em 2.2em;
+           background:linear-gradient(135deg,#fff3ec 0%,#eef3ff 100%); }
+  .lk-stage { flex:1; min-height:0; display:grid; gap:.7em; padding:.8em; }
+  .lk-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.4em; color:var(--muted); font-weight:600; text-align:center; }
+  .lk-empty .big { font-size:3.5em; }
+  .reel { position:relative; overflow:hidden; min-width:0; min-height:0; border-radius:.9em; border:2px solid var(--line);
+          background:linear-gradient(#ffffff, #f4f6fb); }
+  .reel::before, .reel::after { content:""; position:absolute; left:0; right:0; height:30%; pointer-events:none; z-index:2; }
+  .reel::before { top:0; background:linear-gradient(#ffffffee, #ffffff00); }
+  .reel::after { bottom:0; background:linear-gradient(#ffffff00, #ffffffee); }
+  .reel-strip { will-change:transform; }
+  .reel-strip.spinning { filter:blur(1.5px); }
+  .reel-item { height:var(--rh, 6em); display:flex; align-items:center; justify-content:center; padding:0 .4em;
+               font-weight:800; letter-spacing:-.02em; color:var(--ink); font-size:var(--fs, 2em); white-space:nowrap; overflow:hidden; }
+  .reel.stopped { border-color:var(--accent); background:linear-gradient(#fff, #fff4ef);
+                  box-shadow:0 0 0 .2em rgba(255,90,54,.18), 0 .5em 1.5em rgba(255,90,54,.25); animation:pop .28s cubic-bezier(.16,1,.3,1); }
+  .reel.stopped .reel-item { color:var(--accent); }
+  @keyframes pop { from { transform:scale(.92); } to { transform:scale(1); } }
+  .lk-ctrl { display:flex; align-items:center; gap:1em; flex-wrap:wrap; }
+  .lk-ctrl label { margin:0; display:flex; align-items:center; gap:.5em; font-size:.9em; font-weight:700; }
+  .lk-ctrl input[type=number] { width:4.5em; padding:.45em .6em; }
+  .lk-ctrl input[type=checkbox] { width:1.1em; height:1.1em; accent-color:var(--accent); }
+  .lk-chip { margin-left:auto; padding:.35em .9em; border-radius:2em; background:#f6f7fb; border:1px solid var(--line); font-size:.85em; font-weight:700; color:var(--muted); }
+  #lkGo:disabled { opacity:.5; cursor:default; box-shadow:none; }
+  .lk-names { flex:1; min-height:0; display:flex; flex-direction:column; }
+  #lkNames { flex:1; min-height:0; resize:none; line-height:1.5; }
+  .lk-wins { max-height:11em; display:flex; flex-direction:column; min-height:0; }
+  .lk-wins .head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.5em; }
+  .lk-wins .head b { font-size:.85em; }
+  .lk-wins button { border:0; background:none; color:var(--muted); font-size:.8em; font-weight:700; padding:0; }
+  .lk-wins button:hover { color:var(--accent); }
+  #lkWinners { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:.4em; overflow:auto; min-height:0; }
+  #lkWinners li { padding:.3em .75em; border-radius:2em; background:#fff4ef; border:1px solid #ffd5c8; font-size:.85em; font-weight:700; }
+  #lkWinners li i { font-style:normal; color:var(--accent); margin-right:.3em; }
+  .lk-wins .none { color:var(--muted); font-size:.85em; }
 </style>
 </head>
 <body>
 <div id="app">
 
-<div id="setup" class="screen">
+<div id="menu" class="screen">
+  <div class="menu-head">
+    <img src="assets/lakeduck.png" alt="LAKE DUCK">
+    <p>레이크덕 럭키드로우 · 무엇을 할까요?</p>
+  </div>
+  <div class="menu-cards">
+    <button class="menu-card" type="button" id="goLucky">
+      <div class="ico">🎰</div>
+      <b>럭키드로우</b>
+      <span>슬롯머신으로 당첨자를 뽑아요</span>
+      <div class="go">시작하기</div>
+    </button>
+    <button class="menu-card" type="button" id="goRace">
+      <div class="ico"><img src="assets/lakeduck.png" alt=""></div>
+      <b>오리날다</b>
+      <span>오리 달리기 레이스로 순위를 정해요</span>
+      <div class="go">시작하기</div>
+    </button>
+  </div>
+  <div class="sponsor"><span>OFFICIAL SPONSOR</span><img src="assets/ostrya.png" alt="ostrya"></div>
+</div>
+
+<div id="lucky" class="screen" hidden>
+  <div class="brand">
+    <img class="logo" src="assets/lakeduck.png" alt="LAKE DUCK">
+    <div>
+      <h1>럭키드로우</h1>
+      <p class="sub">레이크덕 럭키드로우</p>
+    </div>
+    <div class="tools">
+      <button class="back" type="button" data-menu>← 메뉴</button>
+      <button class="fs" type="button">⛶ 전체화면</button>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card lk-stage" id="lkStage"></div>
+    <div class="lk-ctrl">
+      <label>뽑을 인원 <input id="lkCount" type="number" min="1" max="12" value="1"></label>
+      <label><input id="lkExclude" type="checkbox" checked> 당첨자는 다음 추첨에서 제외</label>
+      <span class="lk-chip" id="lkRemain">남은 인원 0명</span>
+    </div>
+    <button id="lkGo">추첨하기</button>
+  </div>
+  <div class="col">
+    <div class="card lk-names">
+      <label for="lkNames">참가자 <span class="cnt" id="lkCountLabel">0명</span></label>
+      <textarea id="lkNames" placeholder="철수&#10;영희&#10;민수"></textarea>
+      <p class="hint">ENTER로 참가자를 구분해요. 오리날다와 같은 명단이에요.</p>
+    </div>
+    <div class="card lk-wins">
+      <div class="head"><b>당첨 기록 <span id="lkWinCount">0</span></b><button type="button" id="lkReset">초기화</button></div>
+      <ol id="lkWinners"></ol>
+    </div>
+  </div>
+</div>
+
+<div id="setup" class="screen" hidden>
   <div class="brand">
     <img class="logo" src="assets/lakeduck.png" alt="LAKE DUCK">
     <div>
       <h1>오리날다</h1>
       <p class="sub">레이크덕 럭키드로우</p>
     </div>
-    <button class="fs" type="button">⛶ 전체화면</button>
+    <div class="tools">
+      <button class="back" type="button" data-menu>← 메뉴</button>
+      <button class="fs" type="button">⛶ 전체화면</button>
+    </div>
   </div>
   <div class="col">
     <div class="card names-card">
@@ -1869,6 +1987,118 @@ $('btnQuit').onclick = backToSetup;
 $('btnBack').onclick = backToSetup;
 $('btnReplay').onclick = () => beginRace(race, seed);
 $('btnAgain').onclick = () => beginRace(race, (Math.random() * 0xFFFFFFFF) >>> 0);
+
+/* =========================================================
+ *  화면 전환: 메뉴(최초 진입) · 럭키드로우 · 오리날다 설정
+ * ========================================================= */
+function showScreen(id) {
+  for (const s of ['menu', 'lucky', 'setup']) $(s).hidden = s !== id;
+  if (id === 'setup') { $('names').value = cfg.names; updateCount(); }
+  if (id === 'lucky') { $('lkNames').value = cfg.names; LK.render(); }
+}
+$('goLucky').onclick = () => showScreen('lucky');
+$('goRace').onclick = () => showScreen('setup');
+document.querySelectorAll('[data-menu]').forEach(b => { b.onclick = () => { if (!LK.spinning) showScreen('menu'); }; });
+// 오리날다 명단도 입력 즉시 저장 → 럭키드로우와 같은 명단을 씀
+$('names').addEventListener('input', () => { cfg.names = $('names').value; saveCfg(); });
+
+/* =========================================================
+ *  럭키드로우 (슬롯머신)
+ *  - 당첨자는 먼저 공정하게 뽑아 두고(Fisher–Yates 부분 셔플), 릴은 그 결과를 보여주는 연출
+ *  - 릴은 들러리 이름들을 빠르게 지나 감속(easeOutQuint)하며 마지막 칸(당첨자)에 멈춤
+ *  - 여러 명이면 릴마다 조금씩 늦게 멈춰 마지막까지 긴장감 유지
+ * ========================================================= */
+const LK = (() => {
+  let winners = [], spinning = false, anims = [];
+  const names = () => [...new Set(parseNames(cfg.names))];            // 중복 이름은 한 번만
+  const pool = () => $('lkExclude').checked ? names().filter(n => !winners.includes(n)) : names();
+  // 공정한 무작위 추첨: 앞의 count개만 교환하는 Fisher–Yates
+  function pickRandom(arr, count) {
+    const a = arr.slice(), n = Math.min(count, a.length);
+    for (let i = 0; i < n; i++) {
+      const j = i + Math.floor(Math.random() * (a.length - i));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a.slice(0, n);
+  }
+  function stageEmpty() {
+    const st = $('lkStage'); st.innerHTML = ''; st.style.gridTemplateColumns = '1fr'; st.style.gridAutoRows = '1fr';
+    const e = document.createElement('div'); e.className = 'lk-empty';
+    e.innerHTML = '<div class="big">🎰</div><div>추첨하기를 누르면 슬롯이 돌아가요</div>';
+    st.append(e);
+  }
+  function draw() {
+    if (spinning) return;
+    const p = pool();
+    const count = Math.min(clamp(parseInt($('lkCount').value) || 1, 1, 12), p.length);
+    if (count <= 0) return;
+    const picked = pickRandom(p, count);
+    anims.forEach(cancelAnimationFrame); anims = [];
+    spinning = true; render();
+    const st = $('lkStage'); st.innerHTML = '';
+    const cols = count <= 3 ? count : count <= 8 ? Math.ceil(count / 2) : Math.ceil(count / 3);
+    st.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    st.style.gridAutoRows = 'minmax(0, 1fr)';
+    const decoys = names();
+    let pending = count;
+    const stagger = Math.min(750, 3600 / Math.max(1, count - 1));
+    picked.forEach((winner, i) => {
+      const reel = document.createElement('div'); reel.className = 'reel';
+      const strip = document.createElement('div'); strip.className = 'reel-strip spinning';
+      const len = 26 + i * 5;
+      const seq = [];
+      for (let k = 0; k < len - 1; k++) seq.push(decoys[Math.floor(Math.random() * decoys.length)]);
+      seq.push(winner);                                                  // 마지막 칸 = 당첨자
+      let last = null;
+      for (const nm of seq) { const it = document.createElement('div'); it.className = 'reel-item'; it.textContent = nm; strip.append(it); last = it; }
+      reel.append(strip); st.append(reel);
+      const duration = 2400 + i * stagger, start = performance.now();
+      const fit = () => {                                                // 칸 높이·글자 크기 = 릴 크기에 맞춤
+        const h = reel.clientHeight, w = reel.clientWidth;
+        const longest = Math.max(...seq.map(s => s.length), 2);
+        reel.style.setProperty('--rh', h + 'px');
+        reel.style.setProperty('--fs', Math.max(12, Math.min(h * 0.34, (w - 16) / (longest * 1.05))) + 'px');
+        return h;
+      };
+      const tick = now => {
+        const h = fit();
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - t, 5);
+        strip.style.transform = `translateY(${-(seq.length - 1) * h * eased}px)`;
+        if (t < 1) {
+          if (t > 0.9) strip.classList.remove('spinning');
+          anims.push(requestAnimationFrame(tick));
+          return;
+        }
+        strip.replaceChildren(last); strip.style.transform = 'none'; strip.classList.remove('spinning');
+        reel.classList.add('stopped');
+        if (!winners.includes(winner)) winners.push(winner);             // 공개되는 순간 당첨 확정
+        if (--pending === 0) spinning = false;
+        render();
+      };
+      anims.push(requestAnimationFrame(tick));
+    });
+  }
+  function render() {
+    const all = names(), remain = pool().length;
+    $('lkCountLabel').textContent = all.length + '명';
+    $('lkRemain').textContent = '남은 인원 ' + remain + '명';
+    $('lkGo').disabled = spinning || remain === 0;
+    $('lkGo').textContent = spinning ? '추첨 중…' : winners.length ? '다시 추첨' : '추첨하기';
+    $('lkCount').disabled = spinning; $('lkExclude').disabled = spinning;
+    $('lkWinCount').textContent = winners.length;
+    const ul = $('lkWinners'); ul.innerHTML = '';
+    if (!winners.length) { const li = document.createElement('li'); li.className = 'none'; li.style.cssText = 'background:none;border:0;padding:0'; li.textContent = '아직 당첨자가 없어요'; ul.append(li); }
+    winners.forEach((w, i) => { const li = document.createElement('li'); const n = document.createElement('i'); n.textContent = (i + 1) + '.'; li.append(n, document.createTextNode(w)); ul.append(li); });
+    if (!spinning && !$('lkStage').querySelector('.reel')) stageEmpty();
+  }
+  $('lkGo').onclick = draw;
+  $('lkReset').onclick = () => { if (spinning) return; winners = []; anims.forEach(cancelAnimationFrame); anims = []; stageEmpty(); render(); };
+  $('lkNames').addEventListener('input', () => { cfg.names = $('lkNames').value; saveCfg(); render(); });
+  $('lkExclude').addEventListener('change', render);
+  return { render, get spinning() { return spinning; }, get winners() { return winners; } };
+})();
+showScreen('menu');
 // 나무·바위 복셀 모델은 처음 만들 때 1초 가까이 걸리므로, 페이지가 뜬 뒤 미리 만들어 둔다
 setTimeout(() => { try { sceneryTemplates(); } catch (e) {} }, 300);
 </script>
