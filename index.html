@@ -335,7 +335,7 @@
           <span class="chip" tabindex="0" data-tip="밟으면 1.3초 넘어짐"><img class="pxi" data-px="banana" alt=""> 바나나</span>
           <span class="chip" tabindex="0" data-tip="바로 앞 사람에게 끌려감"><img class="pxi" data-px="magnet" alt=""> 자석</span>
           <span class="chip" tabindex="0" data-tip="최대 90m 앞으로 던짐 · 반경 3m 안 2초 넘어뜨림"><img class="pxi" data-px="bomb" alt=""> 폭탄</span>
-          <span class="chip" tabindex="0" data-tip="최대 90m 앞으로 던짐 · 반경 2.4m 안 1.5초 넘어뜨림"><img class="pxi" data-px="water" alt=""> 물풍선</span>
+          <span class="chip" tabindex="0" data-tip="최대 90m 앞으로 던짐 · 반경 7.2m 안 1.5초 넘어뜨림"><img class="pxi" data-px="water" alt=""> 물풍선</span>
         </div>
       </div>
     </div>
@@ -713,7 +713,7 @@ const ITEM_TYPES = {
 // 던지는 아이템: R=착탄 반경, T=비행 시간(초), stun=맞으면 넘어져 있는 시간(초)
 const THROW = {
   bomb:  { R: 3.0, T: 1.6, stun: 2.0, fx: 0xff7b00, mark: 0xff3b30, icon: 'boom' },
-  water: { R: 2.4, T: 1.5, stun: 1.5, fx: 0x74c0fc, mark: 0x1c7ed6, icon: 'splash' },
+  water: { R: 7.2, T: 1.5, stun: 1.5, fx: 0x74c0fc, mark: 0x1c7ed6, icon: 'splash' },
 };
 // 혼자 넘어짐: 목표 속도를 다시 뽑을 때(0.5~1.4초마다) 이 확률로 발이 꼬여 넘어짐 → 경기당 평균 1번 안팎
 const TRIP_CHANCE = 0.02, STUN_TRIP = 1.0;
