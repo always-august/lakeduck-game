@@ -1409,6 +1409,65 @@ function addAdBoard(x, z, tx, tz) {
   scene.add(g);
   return { x, z };
 }
+// 곡선 광고판: 중심 c, 반지름 R, 각도 a0 → a1 을 따라 휘어진 판 (앞면이 중심 쪽 = 코스 쪽)
+// 칸 너비가 직선 판(AD_W/7)과 비슷하게 정수 칸으로 나눠 텍스처를 이어 붙임 (7칸 넘으면 다시 Lake Duck부터)
+function addCurvedAdBoard(c, R, a0, a1) {
+  if (a1 < a0) [a0, a1] = [a1, a0];               // 각도가 커지는 쪽 = 안에서 볼 때 오른쪽 → 글자가 뒤집히지 않게
+  const N = 2 + SUB_SPONSORS.length, L = Math.abs(a1 - a0) * R;
+  const panels = Math.max(1, Math.round(L / (AD_W / N))), uMax = panels / N;   // u 1 = 판 한 세트
+  const seg = Math.ceil(L / 0.8), y0 = AD_LIFT, y1 = AD_LIFT + AD_H;
+  const fp = [], fu = [], fn = [], bp = [], bn = [];
+  const at = k => { const a = a0 + (a1 - a0) * k / seg; return [Math.cos(a), Math.sin(a)]; };
+  // 사각형 하나(삼각형 2개). inward=true면 법선이 중심 쪽(앞면), false면 바깥쪽(뒷면). 감는 순서는 법선에 맞춰 자동
+  const pushQuad = (arr, nrm, P, Q, r, inward, uv, ua, ub) => {
+    const v = (d, y) => [c.x + d[0] * r, y, c.z + d[1] * r];
+    const sg = inward ? -1 : 1;
+    let V = [[v(P, y0), [ua, 0], P], [v(Q, y0), [ub, 0], Q], [v(Q, y1), [ub, 1], Q], [v(P, y1), [ua, 1], P]];
+    const e1 = [V[1][0][0] - V[0][0][0], V[1][0][2] - V[0][0][2]], m = [(P[0] + Q[0]) / 2 * sg, (P[1] + Q[1]) / 2 * sg];
+    // (B-A) × 위쪽 의 수평 성분 = (-e1.z, e1.x) → 원하는 법선과 반대면 순서를 뒤집음
+    if (-e1[1] * m[0] + e1[0] * m[1] < 0) V = [V[1], V[0], V[3], V[2]];
+    for (const i of [0, 1, 2, 0, 2, 3]) {
+      const [pt, t, d] = V[i];
+      arr.push(...pt); nrm.push(d[0] * sg, 0, d[1] * sg);
+      if (uv) uv.push(...t);
+    }
+  };
+  for (let k = 0; k < seg; k++) {
+    const P = at(k), Q = at(k + 1);
+    const u0 = uMax * k / seg, u1 = uMax * (k + 1) / seg;
+    // 텍스처 경계(u=1)를 넘는 칸은 둘로 쪼갬 (반복 없이 0~1 안에서만)
+    if (Math.floor(u0) !== Math.floor(u1 - 1e-6)) {
+      const bd = Math.floor(u1 - 1e-6), f = (bd - u0) / (u1 - u0);
+      const aM = a0 + (a1 - a0) * (k + f) / seg, Mv = [Math.cos(aM), Math.sin(aM)];
+      pushQuad(fp, fn, P, Mv, R, true, fu, u0 - Math.floor(u0), 1);
+      pushQuad(fp, fn, Mv, Q, R, true, fu, 0, u1 - bd);
+    } else {
+      const fl = Math.floor(u0);
+      pushQuad(fp, fn, P, Q, R, true, fu, u0 - fl, u1 - fl);
+    }
+    pushQuad(bp, bn, P, Q, R + 0.2, false, null);
+  }
+  const mk = (pos, nrm, uv) => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+    if (uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    return g;
+  };
+  const dark = new THREE.MeshLambertMaterial({ color: 0x2b3242 });
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(mk(fp, fn, fu), new THREE.MeshLambertMaterial({ map: adBoardTex() })));
+  g.add(new THREE.Mesh(mk(bp, bn), dark));
+  const nLeg = Math.max(2, Math.round(L / 4.5) + 1);
+  for (let k = 0; k < nLeg; k++) {
+    const a = a0 + (a1 - a0) * (0.02 + 0.96 * k / (nLeg - 1));
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.2, AD_LIFT + 0.1, 0.2), dark);
+    leg.position.set(c.x + Math.cos(a) * (R + 0.1), (AD_LIFT + 0.1) / 2, c.z + Math.sin(a) * (R + 0.1)); g.add(leg);
+  }
+  scene.add(g);
+  const am = (a0 + a1) / 2;
+  return { x: c.x + Math.cos(am) * R, z: c.z + Math.sin(am) * R, curved: true };
+}
 function buildAdBoards() {
   const M = mapDef(), edge = trackW / 2, boards = [];
   // 결승 카메라 자리에서 결승선까지의 시야를 가리는 판은 세우지 않음
@@ -1435,32 +1494,27 @@ function buildAdBoards() {
       for (let i = 0; i < smp.length; i += 3) if (Math.hypot(smp[i] - x, smp[i + 1] - z) < edge + 0.6) return false;
       return true;
     };
-    // 도시: 코스가 꺾이는 코너마다 한 장씩 — 코너를 돌아 나가는 길의 바깥쪽 인도에 세움
-    // (꺾이기 전 직선에서 보면 정면으로 보임). 안 되면 코너 들어가기 전 직선 바깥쪽
+    // 도시: 코스가 꺾이는 코너마다 곡선 광고판 — 코너 원호 바깥쪽을 따라 휘어지게 세움 (교차로 바깥 연석까지)
     if (M.city) {
-      const T0 = mkFrame(), T1 = mkFrame();
-      const corners = [];
+      const T0 = mkFrame(), T1 = mkFrame(), r = CITY.CORNER, Rb = r + CITY.STREET / 2 + 0.5;
       let inC = false, c0 = 0;
       for (let d = 0; d <= trackLen; d += 1) {
         frameAt(d, T0); frameAt(d + 1, T1);
         const turning = Math.abs(T0.t.x * T1.t.z - T0.t.z * T1.t.x) > 0.01;
         if (turning && !inC) { inC = true; c0 = d; }
-        if (!turning && inC) { inC = false; corners.push([c0, d + 1]); }
-      }
-      const off = CITY.STREET / 2 + 1, hw = AD_W / 2 + 0.2;
-      const tryAt = (d, side) => {
-        frameAt(d, TF);
-        const x = TF.p.x + TF.s.x * side * off, z = TF.p.z + TF.s.z * side * off;
-        if (!(cityOnLot(x + TF.t.x * hw, z + TF.t.z * hw) && cityOnLot(x - TF.t.x * hw, z - TF.t.z * hw))) return false;
-        if (inCamView(x, z) || boards.some(b => Math.hypot(b.x - x, b.z - z) < AD_W + 2)) return false;
-        boards.push(addAdBoard(x, z, TF.p.x, TF.p.z)); return true;
-      };
-      for (const [d0, d1] of corners) {
-        frameAt(d0, T0); frameAt(d1, T1);
-        const out = (T1.t.x * T0.s.x + T1.t.z * T0.s.z) > 0 ? -1 : 1;           // 꺾는 쪽의 반대편 = 바깥
-        let ok = false;
-        for (let k = 0; k <= 12 && !ok; k += 2) ok = tryAt(d1 + AD_W / 2 + 3 + k, out);   // 돌아 나간 뒤
-        for (let k = 0; k <= 12 && !ok; k += 2) ok = tryAt(d0 - AD_W / 2 - 3 - k, out);   // 들어가기 전
+        if (!turning && inC) {
+          inC = false;
+          // 원호 중심: 꺾기 시작점에서 안쪽(꺾는 쪽)으로 r
+          frameAt(c0, T0); frameAt(d + 1, T1);
+          const inSide = (T1.t.x * T0.s.x + T1.t.z * T0.s.z) > 0 ? 1 : -1;
+          const cen = T0.p.clone().addScaledVector(T0.s, inSide * r);
+          const a0 = Math.atan2(T0.p.z - cen.z, T0.p.x - cen.x);
+          let a1 = Math.atan2(T1.p.z - cen.z, T1.p.x - cen.x), da = a1 - a0;
+          while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+          const ext = 0.12 * Math.sign(da);                                  // 원호보다 양끝을 조금 더 감쌈
+          const mid = a0 + da / 2, mx = cen.x + Math.cos(mid) * Rb, mz = cen.z + Math.sin(mid) * Rb;
+          if (!inCamView(mx, mz)) boards.push(addCurvedAdBoard(cen, Rb, a0 - ext, a0 + da + ext));
+        }
       }
     }
     // 4m씩 훑으며 세울 수 있는 첫 자리에 세우고, 다음 판은 최소 (판 길이 + 10m) 뒤 (교차로·급커브는 건너뜀)
