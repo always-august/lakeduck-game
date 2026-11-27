@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>오리런</title>
+<title>꽥꽥런</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   /* 16:9 고정 스테이지. --sw(스테이지 너비)에 맞춰 font-size가 바뀌고,
@@ -226,7 +226,7 @@
     </button>
     <button class="menu-card" type="button" id="goRace">
       <div class="ico"><img src="assets/lakeduck.png" alt=""></div>
-      <b>오리런</b>
+      <b>꽥꽥런</b>
       <span>오리 레이스로 순위를 정해요</span>
       <div class="go">시작하기</div>
     </button>
@@ -255,14 +255,14 @@
     </div>
     <div class="lk-btns">
       <button id="lkGo">추첨하기</button>
-      <button id="lkRace" type="button" title="럭키드로우 당첨자를 뺀 나머지가 오리런 주자가 돼요">당첨자 빼고 오리런</button>
+      <button id="lkRace" type="button" title="럭키드로우 당첨자를 뺀 나머지가 꽥꽥런 주자가 돼요">당첨자 빼고 꽥꽥런</button>
     </div>
   </div>
   <div class="col">
     <div class="card lk-names">
       <label for="lkNames">참가자 <span class="cnt" id="lkCountLabel">0명</span></label>
       <textarea id="lkNames" placeholder="귤섬&#10;라이트래블&#10;캠핑앤스타일&#10;김레덕&#10;박레덕&#10;오레덕&#10;이레덕&#10;최레덕&#10;남궁레덕&#10;윤레덕&#10;구레덕&#10;손레덕&#10;고레덕"></textarea>
-      <p class="hint">ENTER로 참가자를 구분해요. 오리런과 같은 명단이에요.</p>
+      <p class="hint">ENTER로 참가자를 구분해요. 꽥꽥런과 같은 명단이에요.</p>
     </div>
     <div class="card lk-wins">
       <div class="head"><b>당첨 기록 <span id="lkWinCount">0</span></b><button type="button" id="lkReset">초기화</button></div>
@@ -275,7 +275,7 @@
   <div class="brand">
     <img class="logo" src="assets/lakeduck.png" alt="LAKE DUCK">
     <div>
-      <h1>오리런</h1>
+      <h1>꽥꽥런</h1>
       <p class="sub">레이크덕 럭키드로우</p>
     </div>
     <div class="tools">
@@ -1363,24 +1363,43 @@ function addAdBoard(x, z, tx, tz) {
 }
 function buildAdBoards() {
   const M = mapDef(), edge = trackW / 2, boards = [];
+  // 결승 카메라 자리에서 결승선까지의 시야를 가리는 판은 세우지 않음
+  const camA = new THREE.Vector3(), camB = new THREE.Vector3(); finishCamPose(camA, camB);
+  const inCamView = (x, z) => {
+    const vx = camB.x - camA.x, vz = camB.z - camA.z;
+    const t = clamp(((x - camA.x) * vx + (z - camA.z) * vz) / (vx * vx + vz * vz), 0, 1);
+    return Math.hypot(x - (camA.x + vx * t), z - (camA.z + vz * t)) < AD_W / 2 + 3;
+  };
+  const add = (x, z, tx, tz) => { if (!inCamView(x, z)) boards.push(addAdBoard(x, z, tx, tz)); };
   if (M.S) {
-    // 트랙 러닝: 동서남북 4개 (트랙 바깥, 트랙 쪽을 향함)
-    const { S, R } = M, o = R + edge + 2.2;
-    for (const [x, z, tx, tz] of [
-      [S * 0.25, -o, S * 0.25, 0],           // 남: 홈 직선 바깥 (결승선·결승 카메라와 떨어진 쪽)
-      [S * 0.5, o - 0.6, S * 0.5, 0],        // 북: 백 직선, 관중석 앞
-      [S + o, 0, S, 0],                      // 동: 곡선 바깥 꼭짓점
-      [-o, 0, 0, 0],                         // 서: 곡선 바깥 꼭짓점
-    ]) boards.push(addAdBoard(x, z, tx, tz));
+    // 트랙 러닝: 홈 직선 바깥 · 관중석 앞(백 직선) · 양쪽 곡선 바깥에 둘러 세움 (트랙 쪽을 향함)
+    const { S, R } = M, o = R + edge + 2.2, c = Math.SQRT1_2;
+    add(S * 0.25, -o, S * 0.25, 0);                                                  // 남: 홈 직선 바깥
+    for (const f of [0.2, 0.5, 0.8]) add(S * f, o - 0.6, S * f, 0);                // 북: 백 직선, 관중석 앞
+    for (const [cx, sx] of [[S, 1], [0, -1]])                                        // 동·서 곡선 바깥: 45°마다
+      for (const [ux, uz] of [[c, -c], [1, 0], [c, c]]) add(cx + sx * ux * o, uz * o, cx, 0);
+    add(S * 0.6, -o, S * 0.6, 0);                                                    // 남: 홈 직선 한 장 더 (결승 시야면 자동 생략)
   } else {
-    // 트래킹·도시: 80m 간격, 좌우 번갈아. 출발·결승 구간과 결승 카메라 시야는 피함
-    let k = 0;
-    for (let d = 40; d < trackLen - 20; d += 80, k++) {
+    // 트래킹·도시: 36m 간격, 좌우 번갈아. 출발·결승 구간과 결승 카메라 시야는 피함
+    // 굽은 구간에선 10m 판 끝이 길로 들어갈 수 있음 → 판 양끝이 길 밖인지 확인
+    const smp = M.city ? null : courseSamples(2);
+    const offRoad = (x, z) => {
+      for (let i = 0; i < smp.length; i += 3) if (Math.hypot(smp[i] - x, smp[i + 1] - z) < edge + 0.6) return false;
+      return true;
+    };
+    // 4m씩 훑으며 세울 수 있는 첫 자리에 세우고, 다음 판은 최소 36m 뒤 (교차로·급커브는 건너뜀)
+    let k = 0, last = -Infinity;
+    for (let d = 30; d < trackLen - 20; d += 4) {
+      if (d - last < 36) continue;
       frameAt(d, TF);
-      const side = k % 2 ? 1 : -1, off = M.city ? CITY.STREET / 2 + 1 : edge + 2.2;   // 도시는 도로 폭이 고정 → 인도 위
-      const x = TF.p.x + TF.s.x * side * off, z = TF.p.z + TF.s.z * side * off;
-      if (M.city && !(cityOnLot(x + TF.t.x * 5.2, z + TF.t.z * 5.2) && cityOnLot(x - TF.t.x * 5.2, z - TF.t.z * 5.2))) continue;   // 판 양끝까지 인도 위
-      boards.push(addAdBoard(x, z, TF.p.x, TF.p.z));
+      const off = M.city ? CITY.STREET / 2 + 1 : edge + 2.2;   // 도시는 도로 폭이 고정 → 인도 위
+      const ok = (x, z) => M.city ? cityOnLot(x, z) : offRoad(x, z);
+      for (const side of k % 2 ? [1, -1] : [-1, 1]) {           // 좌우 번갈아, 안 되면 반대편
+        const x = TF.p.x + TF.s.x * side * off, z = TF.p.z + TF.s.z * side * off;
+        if (!(ok(x + TF.t.x * 5.2, z + TF.t.z * 5.2) && ok(x - TF.t.x * 5.2, z - TF.t.z * 5.2))) continue;   // 판 양끝까지 길 밖(도시는 인도 위)
+        if (inCamView(x, z) || boards.some(b => Math.hypot(b.x - x, b.z - z) < AD_W + 2)) continue;
+        boards.push(addAdBoard(x, z, TF.p.x, TF.p.z)); k++; last = d; break;
+      }
     }
   }
   return boards;
@@ -2690,7 +2709,7 @@ function duckGroup(name, [x, y, z], parent) {
 function addBoxes(parent, list, mat) {
   const m = new THREE.Mesh(mergeBoxes(list), mat); m.userData.duckBody = true; parent.add(m); return m;
 }
-// 앞면에 그림(지도·모자 X)을 얹는 얇은 판
+// 앞면에 그림(모자 X)을 얹는 얇은 판
 function addDecal(parent, [w, h], [x, y, z], color, paint) {
   const pg = new THREE.PlaneGeometry(w * DUCK_P, h * DUCK_P); pg.userData.keep = true;
   const m = new THREE.Mesh(pg,
@@ -2742,22 +2761,26 @@ function buildDuck(o) {
   if (o.logo) addLogo(body, o.logo, 2.4, [1.45, 18.75, 3.02]);                // 왼가슴 로고
   if (o.label) addLogo(body, o.label === 'dark' ? '#eeeeee' : '#333333', 1.4, [1.9, 14.35, 3.42]); // 밑단 라벨
   // 배낭 + 깃발
+  // 배낭 색은 주자마다 다름(o.pack). 깃발은 Lake Duck 노랑 그대로
+  const packC = o.pack || DC.yellow, packD = shade(packC, -0.12);
   const pack = duckGroup('backpack', [0, 15.5, -3], duck);
   addBoxes(pack, [
-    [8, 9, 4, 0, 0, -2, DC.yellow],
-    [8.2, 3, 4.2, 0, 3.5, -2, DC.yellowDark],
-    [5, 3.5, 1.4, 0, -2, -4.7, DC.yellowDark],
-    [1.4, 4, 2.6, 4.7, -1.5, -2, DC.yellowDark],
-    [1.4, 4, 2.6, -4.7, -1.5, -2, DC.yellowDark],
+    [8, 9, 4, 0, 0, -2, packC],
+    [8.2, 3, 4.2, 0, 3.5, -2, packD],
+    [7, 5, 1.4, 0, -1.5, -4.7, packD],                                       // 뒤 포켓 (로고 자리)
+    [1.4, 4, 2.6, 4.7, -1.5, -2, packD],
+    [1.4, 4, 2.6, -4.7, -1.5, -2, packD],
     [0.6, 22, 0.6, -3, 13.5, -3, DC.brown],
     [1, 1, 1, -3, 25, -3, DC.boot],
     [0.3, 3.4, 5.5, -3, 22.6, -5.9, DC.yellow],
   ], mat);
-  addLogo(pack, '#161616', 4.3, [0, -2, -5.42], Math.PI);                      // 배낭 포켓 ostrya 로고
-  // 지도를 든 팔
+  // 배낭 뒤 ostrya 로고: 밝은 가방엔 검정, 어두운 가방엔 흰색
+  const lum = (h => { const n = parseInt(h.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255); })(packD);
+  addLogo(pack, lum > 140 ? '#161616' : '#f4f4f2', 6.4, [0, -1.5, -5.42], Math.PI);
+  // 팔 (달릴 때 앞뒤로 흔듦)
   for (const side of ['L', 'R']) {
     const A = duckGroup('arm_' + side, [side === 'L' ? 6 : -6, 19.5, 0], duck);
-    A.rotation.set(-1.32, 0, side === 'L' ? -0.12 : 0.12);
+    A.rotation.set(-0.15, 0, side === 'L' ? -0.12 : 0.12);
     const armBoxes = [
       [3, 6, 3, 0, -2.5, 0, jacket],
       [3.3, 1, 3.3, 0, -5.8, 0, jacketLight],
@@ -2766,29 +2789,6 @@ function buildDuck(o) {
     if (o.patch && o.patch.side === side) armBoxes.push([0.25, 2.2, 1.7, side === 'L' ? 1.6 : -1.6, -2.2, 0, o.patch.color]);
     addBoxes(A, armBoxes, mat);
   }
-  // 펼친 지도 (산 · 점선 · X)
-  const map = duckGroup('map', [0, 17.6, 9.6], duck);
-  map.rotation.order = 'YXZ'; map.rotation.y = Math.PI; map.rotation.x = -0.55;
-  const drawPanel = left => (g, w, h) => {
-    g.fillStyle = 'rgba(20,20,20,0.95)';
-    const px = (x, y) => g.fillRect(x, y, 1, 1);
-    if (left) {
-      const mtn = (cx, base, hgt) => { for (let i = 0; i <= hgt; i++) { px(cx - i, base - hgt + i); px(cx + i, base - hgt + i); } };
-      mtn(5, 12, 6); mtn(11, 12, 4);
-      for (let x = 1; x < w - 1; x++) px(x, 13);
-      for (let x = 2; x < w; x += 2) px(x, 16);
-    } else {
-      [[0, 16], [2, 15], [4, 14], [5, 12], [6, 10], [8, 9], [9, 7]].forEach(([x, y]) => px(x, y));
-      for (let i = -2; i <= 2; i++) { px(11 + i, 6 + i); px(11 + i, 6 - i); }
-    }
-  };
-  const panelL = duckGroup('map_left', [0, 0, 0], map); panelL.rotation.y = 0.18;
-  const panelR = duckGroup('map_right', [0, 0, 0], map); panelR.rotation.y = -0.18;
-  addBoxes(panelL, [[8, 10, 0.4, 4, 0, 0, DC.paper]], mat);
-  addBoxes(panelR, [[8, 10, 0.4, -4, 0, 0, DC.paper]], mat);
-  addDecal(panelL, [8, 10], [4, 0, 0.21], DC.paper, drawPanel(true));
-  addDecal(panelR, [8, 10], [-4, 0, 0.21], DC.paper, drawPanel(false));
-  addBoxes(map, [[0.5, 10, 0.5, 0, 0, -0.05, DC.yellowDark]], mat);
   // 머리
   const head = duckGroup('head', [0, 20.2, 0.6], duck);
   head.rotation.set(0.12, -0.1, 0);
@@ -2819,16 +2819,20 @@ function buildDuck(o) {
   return duck;
 }
 // 재킷 색별 원본을 한 번만 만들고 러너마다 clone (지오메트리·텍스처 공유)
-function duckFor(o) {
-  if (!duckTemplates.has(o)) duckTemplates.set(o, buildDuck(o));
-  return duckTemplates.get(o).clone(true);
+// 배낭 색 12가지 (연출 전용 · 주자 번호로 정함 → 경기 결과와 무관)
+const PACKS = ['#f7cc1e', '#e8453c', '#2f6fd6', '#3f9a4a', '#f08c2e', '#8a55c9',
+               '#2b3a67', '#e86aa6', '#1fa3a3', '#5b6b3a', '#2a2a2e', '#8f969e'];
+function duckFor(o, pack) {
+  const key = OUTFITS.indexOf(o) + '|' + pack;
+  if (!duckTemplates.has(key)) duckTemplates.set(key, buildDuck(Object.assign({}, o, { pack })));
+  return duckTemplates.get(key).clone(true);
 }
 
 function makeRunner(name, i) {
   const o = OUTFITS[i % OUTFITS.length];
   const color = parseInt(o.base.slice(1), 16);
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-  const duck = duckFor(o);
+  const duck = duckFor(o, PACKS[i % PACKS.length]);
   duck.rotation.y = Math.PI / 2;                       // 오리 정면(+z) → 러너 정면(+x)
   duck.scale.setScalar(DUCK_SCALE);
   duck.position.y = 0.95 * DUCK_P * DUCK_SCALE;          // 밑창이 땅에 닿게
@@ -3245,12 +3249,11 @@ function syncVisuals(rdt) {
       r.arms[0].rotation.set(-2.9, 0, -0.35); r.arms[1].rotation.set(-2.9, 0, 0.35);
     } else if (r.state === 'down') { // 앞으로 엎어짐
       r.body.rotation.z = -1.35;
-    } else {                         // 달리기: 다리 스윙 + 지도 든 팔 살짝 흔들림
+    } else {                         // 달리기: 다리 스윙 + 팔은 반대로 흔듦
       const sw = Math.sin(r.phase) * 0.85;
       r.body.rotation.z = -0.12;
       r.legs[0].rotation.x = sw; r.legs[1].rotation.x = -sw;
-      const bob = Math.sin(r.phase * 2) * 0.06;
-      r.arms[0].rotation.set(-1.32 + bob, 0, -0.12); r.arms[1].rotation.set(-1.32 - bob, 0, 0.12);
+      r.arms[0].rotation.set(-sw * 0.8, 0, -0.12); r.arms[1].rotation.set(sw * 0.8, 0, 0.12);
     }
     r.root.scale.setScalar(r.fxRage > 0 ? 1.3 : 1);
     const em = r.fxRage > 0 ? 0x880000 : r.fxBoost > 0 ? 0x775500 : 0x000000;
@@ -3432,7 +3435,7 @@ function backToSetup() {
   cancelAnimationFrame(animId);
   disposeScene();
   $('race').hidden = true; $('result').hidden = true;
-  showScreen(raceOrigin);                 // 오리런 설정 또는 럭키드로우(당첨자 빼고 오리런)로 복귀
+  showScreen(raceOrigin);                 // 꽥꽥런 설정 또는 럭키드로우(당첨자 빼고 꽥꽥런)로 복귀
 }
 
 /* =========================================================
@@ -3470,7 +3473,7 @@ $('btnReplay').onclick = () => beginRace(race, seed);
 $('btnAgain').onclick = () => beginRace(race, (Math.random() * 0xFFFFFFFF) >>> 0);
 
 /* =========================================================
- *  화면 전환: 메뉴(최초 진입) · 럭키드로우 · 오리런 설정
+ *  화면 전환: 메뉴(최초 진입) · 럭키드로우 · 꽥꽥런 설정
  * ========================================================= */
 function showScreen(id) {
   for (const s of ['menu', 'lucky', 'setup']) $(s).hidden = s !== id;
@@ -3480,7 +3483,7 @@ function showScreen(id) {
 $('goLucky').onclick = () => showScreen('lucky');
 $('goRace').onclick = () => showScreen('setup');
 document.querySelectorAll('[data-menu]').forEach(b => { b.onclick = () => { if (!LK.spinning) showScreen('menu'); }; });
-// 오리런 명단도 입력 즉시 저장 → 럭키드로우와 같은 명단을 씀
+// 꽥꽥런 명단도 입력 즉시 저장 → 럭키드로우와 같은 명단을 씀
 $('names').addEventListener('input', () => { cfg.names = $('names').value; saveCfg(); });
 
 /* =========================================================
@@ -3569,7 +3572,7 @@ const LK = (() => {
     $('lkCount').disabled = spinning; $('lkExclude').disabled = spinning;
     const runnersLeft = all.filter(n => !winners.includes(n)).length;      // 당첨자는 항상 주자에서 제외
     $('lkRace').disabled = spinning || winners.length === 0 || runnersLeft < 2;
-    $('lkRace').innerHTML = '당첨자 빼고 오리런<small>' +
+    $('lkRace').innerHTML = '당첨자 빼고 꽥꽥런<small>' +
       (winners.length === 0 ? '먼저 추첨을 해 주세요' : runnersLeft < 2 ? '남은 인원이 2명 이상이어야 해요' : '남은 ' + runnersLeft + '명이 주자로 출전') + '</small>';
     $('lkWinCount').textContent = winners.length;
     const ul = $('lkWinners'); ul.innerHTML = '';
@@ -3578,7 +3581,7 @@ const LK = (() => {
     if (!spinning && !$('lkStage').querySelector('.reel')) stageEmpty();
   }
   $('lkGo').onclick = draw;
-  // 당첨자를 뺀 나머지로 바로 오리런 경기 (설정은 오리런 화면의 맵·거리·순위 방식·아이템 그대로, 저장된 명단은 그대로 둠)
+  // 당첨자를 뺀 나머지로 바로 꽥꽥런 경기 (설정은 꽥꽥런 화면의 맵·거리·순위 방식·아이템 그대로, 저장된 명단은 그대로 둠)
   $('lkRace').onclick = () => {
     if (spinning) return;
     const runnersNames = names().filter(n => !winners.includes(n));
@@ -3638,7 +3641,7 @@ function buildSlotMachine() {
 }
 let SLOT3D_URL = null;
 try {
-  // 오리런: 경기용 복셀 오리 (깃대 빼고 몸통·머리 기준 프레이밍)
+  // 꽥꽥런: 경기용 복셀 오리 (깃대 빼고 몸통·머리 기준 프레이밍)
   const duckURL = renderIcon(buildDuck({ base: '#8b5a2f', trim: '#a7703c', collar: '#8b5a2f', zip: '#5c3a1c', zipType: 'half' }),
     new THREE.Vector3(0, 1.0, 0.15), new THREE.Vector3(0.42, 0.24, 1), 4.3);
   const di = document.querySelector('#goRace .ico img'); di.src = duckURL; di.classList.add('icon3d');
