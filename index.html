@@ -1435,6 +1435,34 @@ function buildAdBoards() {
       for (let i = 0; i < smp.length; i += 3) if (Math.hypot(smp[i] - x, smp[i + 1] - z) < edge + 0.6) return false;
       return true;
     };
+    // 도시: 코스가 꺾이는 코너마다 한 장씩 — 코너를 돌아 나가는 길의 바깥쪽 인도에 세움
+    // (꺾이기 전 직선에서 보면 정면으로 보임). 안 되면 코너 들어가기 전 직선 바깥쪽
+    if (M.city) {
+      const T0 = mkFrame(), T1 = mkFrame();
+      const corners = [];
+      let inC = false, c0 = 0;
+      for (let d = 0; d <= trackLen; d += 1) {
+        frameAt(d, T0); frameAt(d + 1, T1);
+        const turning = Math.abs(T0.t.x * T1.t.z - T0.t.z * T1.t.x) > 0.01;
+        if (turning && !inC) { inC = true; c0 = d; }
+        if (!turning && inC) { inC = false; corners.push([c0, d + 1]); }
+      }
+      const off = CITY.STREET / 2 + 1, hw = AD_W / 2 + 0.2;
+      const tryAt = (d, side) => {
+        frameAt(d, TF);
+        const x = TF.p.x + TF.s.x * side * off, z = TF.p.z + TF.s.z * side * off;
+        if (!(cityOnLot(x + TF.t.x * hw, z + TF.t.z * hw) && cityOnLot(x - TF.t.x * hw, z - TF.t.z * hw))) return false;
+        if (inCamView(x, z) || boards.some(b => Math.hypot(b.x - x, b.z - z) < AD_W + 2)) return false;
+        boards.push(addAdBoard(x, z, TF.p.x, TF.p.z)); return true;
+      };
+      for (const [d0, d1] of corners) {
+        frameAt(d0, T0); frameAt(d1, T1);
+        const out = (T1.t.x * T0.s.x + T1.t.z * T0.s.z) > 0 ? -1 : 1;           // 꺾는 쪽의 반대편 = 바깥
+        let ok = false;
+        for (let k = 0; k <= 12 && !ok; k += 2) ok = tryAt(d1 + AD_W / 2 + 3 + k, out);   // 돌아 나간 뒤
+        for (let k = 0; k <= 12 && !ok; k += 2) ok = tryAt(d0 - AD_W / 2 - 3 - k, out);   // 들어가기 전
+      }
+    }
     // 4m씩 훑으며 세울 수 있는 첫 자리에 세우고, 다음 판은 최소 (판 길이 + 10m) 뒤 (교차로·급커브는 건너뜀)
     let k = 0, last = -Infinity;
     for (let d = 30; d < trackLen - 20; d += 4) {
